@@ -1,7 +1,10 @@
-const CHUNK_SIZE = 16384; // 16 KB chunks
+const CHUNK_SIZE = 16384;
 
-// Define the type for the callback function
-type OnChunkCallback = (chunk: { index: number; data: ArrayBuffer; last: boolean }) => void;
+type OnChunkCallback = (chunk: {
+  index: number;
+  data: ArrayBuffer;
+  last: boolean;
+}) => void;
 
 export function createFileChunker(file: File, onChunk: OnChunkCallback) {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -9,7 +12,7 @@ export function createFileChunker(file: File, onChunk: OnChunkCallback) {
 
   function readNextChunk(chunkIndex: number): void {
     if (chunkIndex >= totalChunks) {
-      return; 
+      return;
     }
 
     const start = chunkIndex * CHUNK_SIZE;
@@ -20,7 +23,7 @@ export function createFileChunker(file: File, onChunk: OnChunkCallback) {
       onChunk({
         index: chunkIndex,
         data: e.target?.result as ArrayBuffer,
-        last: chunkIndex === totalChunks - 1
+        last: chunkIndex === totalChunks - 1,
       });
       readNextChunk(chunkIndex + 1);
     };
