@@ -8,12 +8,7 @@ export const webrtcConfig = {
           'stun:stun2.l.google.com:19302',
         ],
       },
-      // You can add TURN servers here if needed
-      // {
-      //   urls: 'turn:your-turn-server.com:3478',
-      //   username: 'your-username',
-      //   credential: 'your-password'
-      // },
+     
     ],
     iceCandidatePoolSize: 10,
   };
