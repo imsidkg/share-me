@@ -1,25 +1,28 @@
-
 import Pusher from 'pusher-js';
 
-export function createPeerDiscovery(onPeerDiscovered, onSignalReceived) {
-  const peerId = Math.random().toString(36).substr(2, 9);
-  let pusher;
-  let channel;
+export function createPeerDiscovery(
+  onPeerDiscovered: (peerId: string) => void,
+  onSignalReceived: (signal: any) => void
+) {
+  const peerId: string = Math.random().toString(36).substr(2, 9);
+  let pusher: Pusher;
+  let channel: Pusher.Channel;
 
-  function start() {
+  function start(): void {
     pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
       cluster: 'YOUR_PUSHER_APP_CLUSTER',
     });
 
-    channel = pusher.subscribe('peer-discovery');
+    // Type casting here to resolve type issue
+    channel = pusher.subscribe('peer-discovery') as unknown as Pusher.Channel;
 
-    channel.bind('peer-announced', (data) => {
+    channel.bind('peer-announced', (data: { peerId: string }) => {
       if (data.peerId !== peerId) {
         onPeerDiscovered(data.peerId);
       }
     });
 
-    channel.bind(`signal-${peerId}`, (data) => {
+    channel.bind(`signal-${peerId}`, (data: { signal: any }) => {
       onSignalReceived(data.signal);
     });
 
@@ -27,22 +30,22 @@ export function createPeerDiscovery(onPeerDiscovered, onSignalReceived) {
     channel.trigger('client-peer-announced', { peerId });
   }
 
-  function stop() {
-    if (channel) {
-      channel.unbind_all();
-      channel.unsubscribe();
+  function stop(): void {
+    if (pusher) {
+      pusher.unsubscribe('peer-discovery');
     }
     if (pusher) {
       pusher.disconnect();
     }
   }
 
-  async function sendSignal(targetPeerId, signal) {
-    channel.trigger(`client-signal-${targetPeerId}`, { 
-      signal, 
-      senderPeerId: peerId 
+  async function sendSignal(targetPeerId: string, signal: any): Promise<void> {
+    channel.trigger(`client-signal-${targetPeerId}`, {
+      signal,
+      senderPeerId: peerId,
     });
   }
 
   return { peerId, start, stop, sendSignal };
 }
+1
