@@ -1,33 +1,34 @@
 import Pusher from 'pusher-js';
+import { Channel } from 'pusher-js';
 
 export function createPeerDiscovery(
   onPeerDiscovered: (peerId: string) => void,
   onSignalReceived: (signal: any) => void
 ) {
   const peerId: string = Math.random().toString(36).substr(2, 9);
-  let pusher: Pusher;
-  let channel: Pusher.Channel;
+  let pusher: Pusher | null = null;
+  let channel: Channel | null = null;
 
   function start(): void {
-    pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
-      cluster: 'YOUR_PUSHER_APP_CLUSTER',
+    if (!pusher) {
+      pusher = new Pusher('YOUR_APP_KEY', { cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER!});
+      channel = pusher.subscribe('peer-discovery');
+    }
+
+    channel!.bind('pusher:subscription_succeeded', () => {
+      // Announce this peer when successfully subscribed
+      channel!.trigger('client-peer-announced', { peerId });
     });
 
-    // Type casting here to resolve type issue
-    channel = pusher.subscribe('peer-discovery') as unknown as Pusher.Channel;
-
-    channel.bind('peer-announced', (data: { peerId: string }) => {
+    channel?.bind('client-peer-announced', (data: { peerId: string }) => {
       if (data.peerId !== peerId) {
         onPeerDiscovered(data.peerId);
       }
     });
 
-    channel.bind(`signal-${peerId}`, (data: { signal: any }) => {
+    channel?.bind(`client-signal-${peerId}`, (data: { signal: any, senderPeerId: string }) => {
       onSignalReceived(data.signal);
     });
-
-    // Announce this peer
-    channel.trigger('client-peer-announced', { peerId });
   }
 
   function stop(): void {
@@ -40,6 +41,7 @@ export function createPeerDiscovery(
   }
 
   async function sendSignal(targetPeerId: string, signal: any): Promise<void> {
+    if (!channel) throw new Error("Channel is not initialized");
     channel.trigger(`client-signal-${targetPeerId}`, {
       signal,
       senderPeerId: peerId,
@@ -48,4 +50,3 @@ export function createPeerDiscovery(
 
   return { peerId, start, stop, sendSignal };
 }
-1
